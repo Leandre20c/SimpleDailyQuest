@@ -48,10 +48,6 @@ public class DailyQuestAdminCommand implements CommandExecutor, TabCompleter {
                 handleResetCommand(sender, args);
                 break;
 
-            case "give":
-                handleGiveCommand(sender, args);
-                break;
-
             case "info":
                 handleInfoCommand(sender, args);
                 break;
@@ -156,7 +152,7 @@ public class DailyQuestAdminCommand implements CommandExecutor, TabCompleter {
             // Reset de toutes les quêtes pour tous
             int count = 0;
             for (Player player : Bukkit.getOnlinePlayers()) {
-                plugin.getQuestManager().forceAssignQuests(player);
+                plugin.getQuestManager().forceResetQuests(player);
                 count++;
             }
             sender.sendMessage("§a[SimpleDailyQuests] Toutes les quêtes réinitialisées pour " + count + " joueur(s).");
@@ -167,7 +163,7 @@ public class DailyQuestAdminCommand implements CommandExecutor, TabCompleter {
      * Reset toutes les quêtes d'un joueur
      */
     private void resetAllPlayerQuests(CommandSender sender, Player target) {
-        plugin.getQuestManager().forceAssignQuests(target);
+        plugin.getQuestManager().forceResetQuests(target);
         sender.sendMessage("§a[SimpleDailyQuests] Toutes les quêtes de " + target.getName() + " ont été réinitialisées.");
         target.sendMessage("§e[SimpleDailyQuests] Vos quêtes ont été réinitialisées par un administrateur.");
     }
@@ -180,42 +176,17 @@ public class DailyQuestAdminCommand implements CommandExecutor, TabCompleter {
         playerData.clearActiveQuests(rarity);
         playerData.setLastReset(rarity, System.currentTimeMillis());
 
-        plugin.getQuestManager().assignNewQuests(target);
+        // Notifie le joueur que ses quêtes ont été reset
+        String message = plugin.getConfigManager().getMessagesConfig()
+                .getString("new-quests-available", "&6✨ Nouvelles quêtes disponibles ! &b/quete")
+                .replace("&", "§");
+        String prefix = plugin.getConfigManager().getMessagesConfig().getString("prefix", "");
+        target.sendMessage(prefix + message);
 
         if (sender != null) {
             sender.sendMessage("§a[SimpleDailyQuests] Quêtes " + rarity.name() + " de " + target.getName() + " réinitialisées.");
         }
         target.sendMessage("§e[SimpleDailyQuests] Vos quêtes " + rarity.name() + " ont été réinitialisées.");
-    }
-
-    /**
-     * Gère la commande de give (donner des quêtes)
-     */
-    private void handleGiveCommand(CommandSender sender, String[] args) {
-        if (args.length < 2) {
-            sender.sendMessage("§cUsage: /dqa give <joueur|all>");
-            return;
-        }
-
-        if (args[1].equalsIgnoreCase("all")) {
-            int count = 0;
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                plugin.getQuestManager().assignNewQuests(player);
-                count++;
-            }
-            sender.sendMessage("§a[SimpleDailyQuests] Nouvelles quêtes assignées à " + count + " joueur(s).");
-            return;
-        }
-
-        Player target = Bukkit.getPlayer(args[1]);
-        if (target == null) {
-            sender.sendMessage("§cJoueur introuvable: " + args[1]);
-            return;
-        }
-
-        plugin.getQuestManager().assignNewQuests(target);
-        sender.sendMessage("§a[SimpleDailyQuests] Nouvelles quêtes assignées à " + target.getName() + ".");
-        target.sendMessage("§e[SimpleDailyQuests] De nouvelles quêtes vous ont été assignées!");
     }
 
     /**
@@ -246,12 +217,10 @@ public class DailyQuestAdminCommand implements CommandExecutor, TabCompleter {
 
         for (Quest.QuestRarity rarity : Quest.QuestRarity.values()) {
             int active = playerData.getActiveQuestCount(rarity);
-            int max = plugin.getConfigManager().getMaxActiveQuests(rarity);
             int completed = playerData.getCompletedQuestCount(rarity);
             long lastReset = playerData.getLastReset(rarity);
 
-            sender.sendMessage("§e" + rarity.name() + ": §f" + active + "/" + max +
-                    " actives, " + completed + " terminées");
+            sender.sendMessage("§e" + rarity.name() + ": §f" + active + " actives, " + completed + " terminées");
 
             if (lastReset > 0) {
                 long timeSinceReset = System.currentTimeMillis() - lastReset;
@@ -382,7 +351,6 @@ public class DailyQuestAdminCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage("§6=== Aide Administration SimpleDailyQuests ===");
         sender.sendMessage("§e/dqa reload §7- Recharge les configurations");
         sender.sendMessage("§e/dqa reset <joueur|all> [rareté] §7- Reset les quêtes");
-        sender.sendMessage("§e/dqa give <joueur|all> §7- Assigne de nouvelles quêtes");
         sender.sendMessage("§e/dqa info <joueur> §7- Informations sur un joueur");
         sender.sendMessage("§e/dqa complete <joueur> <quest-id> §7- Force la completion");
         sender.sendMessage("§e/dqa save §7- Sauvegarde les données");
@@ -401,8 +369,8 @@ public class DailyQuestAdminCommand implements CommandExecutor, TabCompleter {
         List<String> completions = new ArrayList<>();
 
         if (args.length == 1) {
-            // Sous-commandes principales
-            List<String> subCommands = Arrays.asList("reload", "reset", "give", "info", "complete",
+            // Sous-commandes principales (supprimé "give")
+            List<String> subCommands = Arrays.asList("reload", "reset", "info", "complete",
                     "save", "debug", "stats", "cleanup", "help");
             String input = args[0].toLowerCase();
 
@@ -415,7 +383,7 @@ public class DailyQuestAdminCommand implements CommandExecutor, TabCompleter {
             String subCommand = args[0].toLowerCase();
 
             // Noms des joueurs pour la plupart des commandes
-            if (Arrays.asList("reset", "give", "info", "complete").contains(subCommand)) {
+            if (Arrays.asList("reset", "info", "complete").contains(subCommand)) {
                 String input = args[1].toLowerCase();
                 completions.add("all");
                 completions.addAll(Bukkit.getOnlinePlayers().stream()
@@ -430,8 +398,8 @@ public class DailyQuestAdminCommand implements CommandExecutor, TabCompleter {
         } else if (args.length == 3) {
             String subCommand = args[0].toLowerCase();
 
-            if (Arrays.asList("reset", "give").contains(subCommand)) {
-                // Raretés pour les commandes reset et give
+            if (subCommand.equals("reset")) {
+                // Raretés pour la commande reset
                 String input = args[2].toLowerCase();
                 for (Quest.QuestRarity rarity : Quest.QuestRarity.values()) {
                     String rarityName = rarity.name().toLowerCase();

@@ -1,6 +1,6 @@
 ﻿# messages.yml
 
-prefix: "&8[&6DailyQuests&8] "
+prefix: "&8[&2Daily&8] "
 
 # Messages de quêtes
 quest-completed: "&a✓ Quête terminée: &f{description} &7(Récompenses reçues!)"
@@ -9,10 +9,7 @@ quest-progress: "&7Progression: &e{progress}&7/&e{required} &7({percentage}%)"
 quest-expired: "&cQuête expirée: &f{description}"
 
 # Messages de reset
-quest-reset-commune: "&6Nouvelles quêtes communes disponibles!"
-quest-reset-rare: "&6Nouvelle quête rare disponible!"
-quest-reset-mythique: "&6Nouvelle quête mythique.yml disponible!"
-quest-reset-legendaire: "&6Nouvelle quête légendaire disponible!"
+new-quests-available: "&2Nouvelles quêtes disponibles ! &b/quete"
 
 # Messages d'erreur
 no-active-quests: "&cVous n'avez aucune quête active."

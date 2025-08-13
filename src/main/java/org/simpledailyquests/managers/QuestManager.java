@@ -3,7 +3,6 @@ package org.simpledailyquests.managers;
 import org.simpledailyquests.SimpleDailyQuests;
 import org.simpledailyquests.models.Quest;
 import org.bukkit.Bukkit;
-import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 
 import java.util.*;
@@ -11,11 +10,9 @@ import java.util.*;
 public class QuestManager {
 
     private final SimpleDailyQuests plugin;
-    private final Random random;
 
     public QuestManager(SimpleDailyQuests plugin) {
         this.plugin = plugin;
-        this.random = new Random();
     }
 
     /**
@@ -54,7 +51,7 @@ public class QuestManager {
         }
 
         if (hasReset) {
-            assignNewQuests(player);
+            notifyPlayerQuestsReset(player);
         }
     }
 
@@ -81,105 +78,55 @@ public class QuestManager {
         // Met à jour le timestamp de dernière réinitialisation
         playerData.setLastReset(rarity, System.currentTimeMillis());
 
-        // Envoie un message de notification
-        String messageKey = "quest-reset-" + rarity.name().toLowerCase();
-        String message = plugin.getConfigManager().getMessagesConfig().getString(messageKey);
-        if (message != null && !message.isEmpty()) {
-            String prefix = plugin.getConfigManager().getMessagesConfig().getString("prefix", "");
-            player.sendMessage(prefix + message.replace("&", "§"));
-        }
-
         if (plugin.getConfigManager().getConfig().getBoolean("debug.log-quest-assignment", true)) {
             plugin.getLogger().info("Reset des quêtes " + rarity.name() + " pour " + player.getName());
         }
     }
 
     /**
-     * Assigne de nouvelles quêtes à un joueur
+     * Notifie le joueur que ses quêtes ont été reset (sans en assigner automatiquement)
      */
-    public void assignNewQuests(Player player) {
-        PlayerQuestData playerData = plugin.getPlayerDataManager().getPlayerData(player);
+    private void notifyPlayerQuestsReset(Player player) {
+        String message = plugin.getConfigManager().getMessagesConfig()
+                .getString("new-quests-available", "&6✨ Nouvelles quêtes disponibles ! &b/quete")
+                .replace("&", "§");
+        String prefix = plugin.getConfigManager().getMessagesConfig().getString("prefix", "");
 
-        for (Quest.QuestRarity rarity : Quest.QuestRarity.values()) {
-            int maxQuests = plugin.getConfigManager().getMaxActiveQuests(rarity);
-            int currentQuests = playerData.getActiveQuestCount(rarity);
-            int questsToAssign = maxQuests - currentQuests;
+        // Délai pour éviter le spam au login
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (player.isOnline()) {
+                player.sendMessage(prefix + message);
 
-            for (int i = 0; i < questsToAssign; i++) {
-                Quest newQuest = generateRandomQuest(rarity);
-                if (newQuest != null) {
-                    playerData.addActiveQuest(newQuest);
-
-                    // Message de nouvelle quête
-                    String message = plugin.getConfigManager().getMessagesConfig()
-                            .getString("quest-assigned", "&eNouvelle quête {rarity}: &f{description}")
-                            .replace("{rarity}", rarity.name())
-                            .replace("{description}", newQuest.getDescription());
-                    String prefix = plugin.getConfigManager().getMessagesConfig().getString("prefix", "");
-                    player.sendMessage(prefix + message.replace("&", "§"));
-
-                    if (plugin.getConfigManager().getConfig().getBoolean("debug.log-quest-assignment", true)) {
-                        plugin.getLogger().info("Nouvelle quête assignée à " + player.getName() + ": " + newQuest.getQuestId());
+                // Son optionnel
+                String sound = plugin.getConfigManager().getConfig().getString("sounds.quest-assigned");
+                if (sound != null && !sound.isEmpty()) {
+                    try {
+                        player.playSound(player.getLocation(), sound, 0.7f, 1.2f);
+                    } catch (Exception e) {
+                        // Ignore les erreurs de son
                     }
                 }
             }
-        }
+        }, 40L); // 2 secondes de délai
     }
 
     /**
-     * Génère une quête aléatoire d'une rareté donnée
+     * Ajoute manuellement une quête à un joueur
      */
-    private Quest generateRandomQuest(Quest.QuestRarity rarity) {
-        ConfigurationSection questsPool = plugin.getConfigManager()
-                .getQuestConfig(rarity)
-                .getConfigurationSection("quests-pool");
+    public void addQuestToPlayer(Player player, Quest quest) {
+        PlayerQuestData playerData = plugin.getPlayerDataManager().getPlayerData(player);
+        playerData.addActiveQuest(quest);
 
-        if (questsPool == null) {
-            plugin.getLogger().warning("Aucune quête trouvée pour la rareté: " + rarity.name());
-            return null;
-        }
+        // Message de nouvelle quête
+        String message = plugin.getConfigManager().getMessagesConfig()
+                .getString("quest-assigned", "&eNouvelle quête {rarity}: &f{description}")
+                .replace("{rarity}", quest.getRarity().name())
+                .replace("{description}", quest.getDescription());
+        String prefix = plugin.getConfigManager().getMessagesConfig().getString("prefix", "");
+        player.sendMessage(prefix + message.replace("&", "§"));
 
-        // Collecte tous les types de quêtes disponibles
-        List<String> questTypes = new ArrayList<>(questsPool.getKeys(false));
-        if (questTypes.isEmpty()) {
-            return null;
-        }
-
-        // Sélectionne un type aléatoire
-        String selectedType = questTypes.get(random.nextInt(questTypes.size()));
-        ConfigurationSection typeSection = questsPool.getConfigurationSection(selectedType);
-
-        if (typeSection == null) {
-            return null;
-        }
-
-        // Sélectionne un target aléatoire dans ce type
-        List<String> targets = new ArrayList<>(typeSection.getKeys(false));
-        if (targets.isEmpty()) {
-            return null;
-        }
-
-        String selectedTarget = targets.get(random.nextInt(targets.size()));
-        int required = typeSection.getInt(selectedTarget);
-
-        // Applique le multiplicateur de rareté
-        double multiplier = plugin.getConfigManager().getRewardsMultiplier(rarity);
-        required = (int) Math.max(1, required * Math.sqrt(multiplier)); // Racine carrée pour éviter des valeurs trop élevées
-
-        // Récupère les récompenses
-        List<String> rewards = plugin.getConfigManager()
-                .getQuestConfig(rarity)
-                .getStringList("rewards");
-
-        // Génère l'ID unique de la quête
-        String questId = selectedType + "_" + selectedTarget + "_" + required + "_" + System.currentTimeMillis();
-
-        try {
-            Quest.QuestType type = Quest.QuestType.valueOf(selectedType.toUpperCase());
-            return new Quest(questId, type, rarity, selectedTarget, required, rewards);
-        } catch (IllegalArgumentException e) {
-            plugin.getLogger().warning("Type de quête invalide: " + selectedType);
-            return null;
+        if (plugin.getConfigManager().getConfig().getBoolean("debug.log-quest-assignment", true)) {
+            plugin.getLogger().info("Quête assignée manuellement à " + player.getName() + ": " + quest.getQuestId());
         }
     }
 
@@ -254,7 +201,6 @@ public class QuestManager {
      */
     private void giveQuestRewards(Player player, Quest quest) {
         List<String> rewards = quest.getRewards();
-        double multiplier = plugin.getConfigManager().getRewardsMultiplier(quest.getRarity());
 
         for (String reward : rewards) {
             // Remplace les placeholders
@@ -268,9 +214,9 @@ public class QuestManager {
     }
 
     /**
-     * Force l'attribution de nouvelles quêtes à un joueur (commande admin)
+     * Force le reset de toutes les quêtes d'un joueur (commande admin)
      */
-    public void forceAssignQuests(Player player) {
+    public void forceResetQuests(Player player) {
         PlayerQuestData playerData = plugin.getPlayerDataManager().getPlayerData(player);
 
         // Clear toutes les quêtes actives
@@ -279,8 +225,8 @@ public class QuestManager {
             playerData.setLastReset(rarity, System.currentTimeMillis());
         }
 
-        // Assigne de nouvelles quêtes
-        assignNewQuests(player);
+        // Notifie le joueur
+        notifyPlayerQuestsReset(player);
     }
 
     /**
@@ -294,8 +240,7 @@ public class QuestManager {
 
         for (Quest.QuestRarity rarity : Quest.QuestRarity.values()) {
             List<Quest> activeQuests = playerData.getActiveQuests(rarity);
-            status.append("§e").append(rarity.name()).append(" (").append(activeQuests.size()).append("/")
-                    .append(plugin.getConfigManager().getMaxActiveQuests(rarity)).append("):\n");
+            status.append("§e").append(rarity.name()).append(" (").append(activeQuests.size()).append("):\n");
 
             if (activeQuests.isEmpty()) {
                 status.append("  §7Aucune quête active\n");
@@ -314,5 +259,3 @@ public class QuestManager {
         return status.toString();
     }
 }
-
-

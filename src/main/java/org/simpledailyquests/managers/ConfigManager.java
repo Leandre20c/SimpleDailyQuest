@@ -230,7 +230,6 @@ public class ConfigManager {
 
             resetHours.put(rarity, config.getInt(path + ".reset-hours", getDefaultResetHours(rarity)));
             maxActiveQuests.put(rarity, config.getInt(path + ".max-active-quests", 1));
-            rewardsMultiplier.put(rarity, config.getDouble(path + ".rewards-multiplier", getDefaultMultiplier(rarity)));
         }
     }
 
@@ -265,10 +264,7 @@ public class ConfigManager {
         messagesConfig.set("quest-expired", "&cQuête expirée: &f{description}");
 
         // Messages de reset
-        messagesConfig.set("quest-reset-commune", "&6Nouvelles quêtes communes disponibles!");
-        messagesConfig.set("quest-reset-rare", "&6Nouvelle quête rare disponible!");
-        messagesConfig.set("quest-reset-mythique", "&6Nouvelle quête mythique disponible!");
-        messagesConfig.set("quest-reset-legendaire", "&6Nouvelle quête légendaire disponible!");
+        messagesConfig.set("new-quests-available", "&2 Nouvelles quêtes disponibles ! &b/quete");
 
         // Messages d'erreur
         messagesConfig.set("no-active-quests", "&cVous n'avez aucune quête active.");
@@ -592,16 +588,6 @@ public class ConfigManager {
     }
 
 
-    private double getDefaultMultiplier(Quest.QuestRarity rarity) {
-        switch (rarity) {
-            case COMMUNE: return 1.0;
-            case RARE: return 2.0;
-            case MYTHIQUE: return 5.0;
-            case LEGENDAIRE: return 10.0;
-            default: return 1.0;
-        }
-    }
-
     // Getters publics
     public FileConfiguration getConfig() {
         return config;
@@ -623,7 +609,4 @@ public class ConfigManager {
         return maxActiveQuests.getOrDefault(rarity, 1);
     }
 
-    public double getRewardsMultiplier(Quest.QuestRarity rarity) {
-        return rewardsMultiplier.getOrDefault(rarity, getDefaultMultiplier(rarity));
-    }
 }
