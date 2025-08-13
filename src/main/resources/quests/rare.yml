@@ -1,0 +1,33 @@
+﻿quests-pool:
+  kill:
+    enderman: 5
+    witch: 3
+    blaze: 8
+    ghast: 2
+    wither_skeleton: 4
+    pillager: 10
+
+  craft:
+    enchanting_table: 1
+    brewing_stand: 2
+    anvil: 1
+    iron_sword: 3
+    diamond_pickaxe: 1
+
+  mine:
+    diamond_ore: 8
+    gold_ore: 24
+    redstone_ore: 32
+    lapis_ore: 16
+    emerald_ore: 4
+
+  explore:
+    nether_distance: 1000
+    end_distance: 500
+    overworld_distance: 2000
+
+rewards:
+  #- "cc give %player% rare 1"
+  - "eco give %player% 500"
+  - "xp give %player% 1000"
+  - "broadcast &6%player% &ea terminé une quête rare!"

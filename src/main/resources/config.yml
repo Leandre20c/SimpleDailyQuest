@@ -1,0 +1,120 @@
+﻿# Configuration principale du plugin DailyQuests
+# Système de quêtes journalières avec différentes raretés
+# config.yml
+
+# Configuration des raretés et timers de reset
+rarity-config:
+  commune:
+    reset-hours: 12          # Reset toutes les 12 heures
+
+  rare:
+    reset-hours: 24          # Reset toutes les 24 heures (1 jour)
+
+  mythique:
+    reset-hours: 72          # Reset toutes les 72 heures (3 jours)
+
+  legendaire:
+    reset-hours: 168         # Reset toutes les 168 heures (7 jours)
+
+quest-settings:
+  # Mondes dans lesquels les quêtes peuvent être accomplies
+  # Si la liste est vide, tous les mondes sont autorisés
+  allowed-worlds:
+    - "world"           # Monde principal
+    - "world_nether"    # Nether
+    - "world_the_end"   # End
+    # - "event"         # Monde événement (désactivé)
+    # - "boatrace"         # Monde boatrace (désactivé)
+
+
+# Configuration de l'interface graphique
+gui:
+  size: 27  # Taille de l'inventaire (multiple de 9)
+
+  title: "&2Mes Quêtes"
+
+  # Items de décoration
+  filler-item:
+    material: "GRAY_STAINED_GLASS_PANE"
+    name: " "
+
+  # Positions des items par rareté
+  slots:
+    commune: 10
+    rare: 12
+    mythique: 14
+    legendaire: 16
+
+  quest-completed-lore:
+    - "&a✓ Quête terminée!"
+    - "&7Cliquez pour récupérer vos récompenses"
+
+  # Items représentant chaque rareté
+  rarity-items:
+    commune:
+      material: "GREEN_CONCRETE_POWDER"
+      name: "&aQuête Commune"
+      lore:
+        - "&6Quête : &f%quest%"
+        -
+        - "&7Progression: &e{progress}&7/&e{required}"
+        - "&7Pourcentage: &e{percentage}%"
+        - ""
+        - "&7Récompenses:"
+        - "&8• &aClée Commune"
+        - ""
+        - "&7Temps restant: &e{time-left}"
+    rare:
+      material: "BLUE_CONCRETE_POWDER"
+      name: "&9Quête Rare"
+      lore:
+        - "&6Quête : &f%quest%"
+        -
+        - "&7Progression: &e{progress}&7/&e{required}"
+        - "&7Pourcentage: &e{percentage}%"
+        - ""
+        - "&7Récompenses:"
+        - "&8• &9Clée Rare"
+        - ""
+        - "&7Temps restant: &e{time-left}"
+    mythique:
+      material: "MAGENTA_CONCRETE_POWDER"
+      name: "&dQuête Mythique"
+      lore:
+        - "&6Quête : &f%quest%"
+        -
+        - "&7Progression: &e{progress}&7/&e{required}"
+        - "&7Pourcentage: &e{percentage}%"
+        - ""
+        - "&7Récompenses:"
+        - "&8• &dClée Mythique"
+        - ""
+        - "&7Temps restant: &e{time-left}"
+    legendaire:
+      material: "RED_CONCRETE_POWDER"
+      name: "&6Quête Légendaire"
+      lore:
+        - "&6Quête : &f%quest%"
+        -
+        - "&7Progression: &e{progress}&7/&e{required}"
+        - "&7Pourcentage: &e{percentage}%"
+        - ""
+        - "&7Récompenses:"
+        - "&8• &cClée Légendaire"
+        - ""
+        - "&7Temps restant: &e{time-left}"
+
+
+# Configuration des sons (optionnel)
+sounds:
+  quest-completed: "ENTITY_PLAYER_LEVELUP"
+  quest-assigned: "ENTITY_EXPERIENCE_ORB_PICKUP"
+  menu-open: "BLOCK_CHEST_OPEN"
+  menu-click: "UI_BUTTON_CLICK"
+
+
+# Configuration debug
+debug:
+  enabled: false  # Active les messages de debug dans la console
+  log-quest-progress: false  # Log la progression des quêtes
+  log-quest-assignment: true  # Log l'attribution des nouvelles qu

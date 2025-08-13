@@ -1,0 +1,25 @@
+﻿# messages.yml
+
+prefix: "&8[&6DailyQuests&8] "
+
+# Messages de quêtes
+quest-completed: "&a✓ Quête terminée: &f{description} &7(Récompenses reçues!)"
+quest-assigned: "&eNouvelle quête {rarity}: &f{description}"
+quest-progress: "&7Progression: &e{progress}&7/&e{required} &7({percentage}%)"
+quest-expired: "&cQuête expirée: &f{description}"
+
+# Messages de reset
+quest-reset-commune: "&6Nouvelles quêtes communes disponibles!"
+quest-reset-rare: "&6Nouvelle quête rare disponible!"
+quest-reset-mythique: "&6Nouvelle quête mythique.yml disponible!"
+quest-reset-legendaire: "&6Nouvelle quête légendaire disponible!"
+
+# Messages d'erreur
+no-active-quests: "&cVous n'avez aucune quête active."
+quest-not-found: "&cQuête introuvable."
+max-quests-reached: "&cVous avez déjà le maximum de quêtes actives pour cette rareté."
+
+# Messages de commandes
+reload-success: "&aConfigurations rechargées avec succès!"
+player-not-found: "&cJoueur introuvable."
+invalid-command: "&cCommande invalide. Utilisez /questsadmin help"

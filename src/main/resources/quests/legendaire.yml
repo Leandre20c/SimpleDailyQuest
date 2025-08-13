@@ -1,0 +1,33 @@
+﻿quests-pool:
+  kill:
+    zombie: 15
+    skeleton: 12
+    spider: 20
+    creeper: 8
+    cow: 25
+    pig: 30
+    chicken: 35
+
+  craft:
+    wooden_pickaxe: 5
+    stone_sword: 3
+    bread: 20
+    torch: 64
+    chest: 8
+    furnace: 4
+
+  mine:
+    stone: 128
+    coal_ore: 32
+    iron_ore: 16
+    cobblestone: 200
+    dirt: 150
+    oak_log: 48
+
+  fish:
+    cod: 64
+    salmon: 64
+
+rewards:
+  #- "cc give %player% commune 1"
+  - "broadcast &6%player% &ea terminé une &cquête légendaire!"

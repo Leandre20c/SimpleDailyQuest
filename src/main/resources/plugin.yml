@@ -1,0 +1,25 @@
+name: SimpleDailyQuests
+version: '1.0'
+main: org.simpledailyquests.SimpleDailyQuests
+api-version: '1.21'
+author: Ouistitiw
+softdepend: [Vault]
+
+commands:
+  dailyquest:
+    description: Commandes principales des quêtes journalières
+    aliases: [quests, q, dq, quest, quete, quetes]
+    usage: /dailyquest [scoreboard|status]
+  dailyquestadmin:
+    description: Commandes administrateur
+    aliases: [dqa]
+    usage: /dailyquestadmin <reload|reset|give|info>
+    permission: simpledailyquests.admin
+
+permissions:
+  simpledailyquests.admin:
+    description: Permissions administrateur
+    default: op
+  simpledailyquests.use:
+    description: Utiliser les quêtes
+    default: true
