@@ -119,11 +119,11 @@ public class QuestGUI implements Listener {
 
         if (activeQuests.isEmpty()) {
             // Aucune quête active - item grisé
-            addNoQuestItem(inventory, slot, rarity, guiConfig);
+            addNoQuestItem(inventory, slot, rarity, guiConfig, player);
         } else {
             // Quête active - affichage de la première quête
             Quest quest = activeQuests.get(0);
-            addQuestItem(inventory, slot, quest, rarity, guiConfig);
+            addQuestItem(inventory, slot, quest, rarity, guiConfig, player);
         }
     }
 
@@ -131,7 +131,7 @@ public class QuestGUI implements Listener {
      * Ajoute un item pour une quête active
      */
     private void addQuestItem(Inventory inventory, int slot, Quest quest, Quest.QuestRarity rarity,
-                              ConfigurationSection guiConfig) {
+                              ConfigurationSection guiConfig, Player player) {
 
         ConfigurationSection rarityConfig = guiConfig.getConfigurationSection("rarity-items." + rarity.name().toLowerCase());
         if (rarityConfig == null) return;
@@ -164,7 +164,7 @@ public class QuestGUI implements Listener {
                             .replace("{progress}", String.valueOf(quest.getProgress()))
                             .replace("{required}", String.valueOf(quest.getRequired()))
                             .replace("{percentage}", String.format("%.1f", quest.getProgressPercentage()))
-                            .replace("{time-left}", getTimeLeft(quest));
+                            .replace("{time-left}", getTimeLeft(quest, player));
 
                     lore.add(processedLine);
                 }
@@ -179,7 +179,14 @@ public class QuestGUI implements Listener {
                         for (String line : completedLore) {
                             lore.add(line.replace("&", "§"));
                         }
+
+                        // Ajout d'une ligne pour indiquer la vérification d'inventaire
+                        lore.add("");
+                        lore.add("§7§o(2 slots libres requis)");
                     }
+
+                    // Change le matériau pour indiquer que c'est terminé
+                    item.setType(Material.LIME_CONCRETE_POWDER);
                 }
 
                 meta.setLore(lore);
@@ -197,13 +204,10 @@ public class QuestGUI implements Listener {
      * Ajoute un item quand aucune quête n'est active
      */
     private void addNoQuestItem(Inventory inventory, int slot, Quest.QuestRarity rarity,
-                                ConfigurationSection guiConfig) {
-
-        ConfigurationSection rarityConfig = guiConfig.getConfigurationSection("rarity-items." + rarity.name().toLowerCase());
-        if (rarityConfig == null) return;
+                                ConfigurationSection guiConfig, Player player) {
 
         try {
-            // Item grisé (barrière ou verre gris)
+            // Item grisé (barrière)
             ItemStack item = new ItemStack(Material.BARRIER);
 
             ItemMeta meta = item.getItemMeta();
@@ -211,10 +215,22 @@ public class QuestGUI implements Listener {
                 meta.setDisplayName("§7Aucune quête " + rarity.name().toLowerCase());
 
                 List<String> lore = new ArrayList<>();
-                lore.add("§7Aucune quête active pour cette rareté.");
-                lore.add("");
-                lore.add("§7Prochaine réinitialisation:");
-                lore.add("§e" + getNextResetTime(rarity));
+
+                // Calcule le temps restant avant la prochaine rotation de quête
+                String timeUntilNext = getTimeUntilNextRotation(rarity, player);
+
+                if (timeUntilNext.equals("Bientôt")) {
+                    lore.add("§aUne nouvelle quête arrive bientôt !");
+                    lore.add("§7Reconnectez-vous ou attendez quelques minutes.");
+                } else if (timeUntilNext.equals("Jamais") || timeUntilNext.equals("Inconnu")) {
+                    lore.add("§7Aucune quête disponible.");
+                    lore.add("§7Contactez un administrateur.");
+                } else {
+                    lore.add("§7Vous avez terminé votre quête.");
+                    lore.add("");
+                    lore.add("§7Prochaine quête dans:");
+                    lore.add("§e" + timeUntilNext);
+                }
 
                 meta.setLore(lore);
                 item.setItemMeta(meta);
@@ -228,25 +244,27 @@ public class QuestGUI implements Listener {
     }
 
     /**
-     * Calcule le temps restant pour une quête
+     * Calcule le temps jusqu'à la prochaine rotation de quête
      */
-    private String getTimeLeft(Quest quest) {
-        long currentTime = System.currentTimeMillis();
-        long questTime = quest.getAssignedTime();
-        long elapsedTime = currentTime - questTime;
+    private String getTimeUntilNextRotation(Quest.QuestRarity rarity, Player player) {
+        PlayerQuestData playerData = plugin.getPlayerDataManager().getPlayerData(player);
+        long lastReset = playerData.getLastReset(rarity);
 
-        // Calcule le temps de reset selon la rareté
-        int resetHours = plugin.getConfigManager().getResetHours(quest.getRarity());
-        long resetTimeMs = resetHours * 60 * 60 * 1000L;
-
-        long timeLeft = resetTimeMs - elapsedTime;
-
-        if (timeLeft <= 0) {
-            return "Expirée";
+        if (lastReset == 0) {
+            return "Jamais"; // Pas encore de timer démarré
         }
 
-        long hours = TimeUnit.MILLISECONDS.toHours(timeLeft);
-        long minutes = TimeUnit.MILLISECONDS.toMinutes(timeLeft) % 60;
+        long currentTime = System.currentTimeMillis();
+        long rotationInterval = plugin.getConfigManager().getResetHours(rarity) * 60 * 60 * 1000L;
+
+        long timeUntilNext = rotationInterval - (currentTime - lastReset);
+
+        if (timeUntilNext <= 60000) { // Moins de 1 minute
+            return "Bientôt";
+        }
+
+        long hours = TimeUnit.MILLISECONDS.toHours(timeUntilNext);
+        long minutes = TimeUnit.MILLISECONDS.toMinutes(timeUntilNext) % 60;
 
         if (hours > 0) {
             return hours + "h " + minutes + "m";
@@ -256,11 +274,36 @@ public class QuestGUI implements Listener {
     }
 
     /**
-     * Calcule le temps jusqu'à la prochaine réinitialisation
+     * Calcule le temps restant avant la prochaine rotation de quête
      */
-    private String getNextResetTime(Quest.QuestRarity rarity) {
-        int resetHours = plugin.getConfigManager().getResetHours(rarity);
-        return "Dans " + resetHours + "h maximum";
+    private String getTimeLeft(Quest quest, Player player) {
+        // Pour une quête active, on affiche le temps avant la prochaine rotation
+        // Pas le temps d'expiration de la quête elle-même
+
+        PlayerQuestData playerData = plugin.getPlayerDataManager().getPlayerData(player);
+        long lastReset = playerData.getLastReset(quest.getRarity());
+
+        if (lastReset == 0) {
+            return "Nouveau"; // Timer pas encore démarré
+        }
+
+        long currentTime = System.currentTimeMillis();
+        long rotationInterval = plugin.getConfigManager().getResetHours(quest.getRarity()) * 60 * 60 * 1000L;
+
+        long timeUntilRotation = rotationInterval - (currentTime - lastReset);
+
+        if (timeUntilRotation <= 0) {
+            return "Rotation imminente";
+        }
+
+        long hours = TimeUnit.MILLISECONDS.toHours(timeUntilRotation);
+        long minutes = TimeUnit.MILLISECONDS.toMinutes(timeUntilRotation) % 60;
+
+        if (hours > 0) {
+            return hours + "h " + minutes + "m";
+        } else {
+            return minutes + "m";
+        }
     }
 
     /**
@@ -289,28 +332,49 @@ public class QuestGUI implements Listener {
         Quest.QuestRarity clickedRarity = getRarityFromSlot(event.getSlot());
         if (clickedRarity == null) return;
 
-        // Vérifie s'il y a une quête terminée à réclamer
+        // Vérifie s'il y a une quête terminée à récupérer
         PlayerQuestData playerData = plugin.getPlayerDataManager().getPlayerData(player);
         List<Quest> activeQuests = playerData.getActiveQuests(clickedRarity);
 
         if (!activeQuests.isEmpty()) {
             Quest quest = activeQuests.get(0);
             if (quest.isCompleted()) {
-                // Donne les récompenses et termine la quête
-                plugin.getQuestManager().completeQuest(player, quest);
+                // Tente de récupérer les récompenses avec vérification d'inventaire
+                boolean success = plugin.getQuestManager().claimQuestRewards(player, quest);
 
-                // Son de récupération
-                String sound = plugin.getConfigManager().getConfig().getString("sounds.quest-completed");
-                if (sound != null && !sound.isEmpty()) {
+                if (success) {
+                    // Son de récupération
+                    String sound = plugin.getConfigManager().getConfig().getString("sounds.rewards-claimed", "ENTITY_PLAYER_LEVELUP");
+                    if (sound != null && !sound.isEmpty()) {
+                        try {
+                            player.playSound(player.getLocation(), sound, 1.0f, 1.0f);
+                        } catch (Exception e) {
+                            // Ignore les erreurs de son
+                        }
+                    }
+
+                    // Met à jour le menu
+                    openMainMenu(player);
+                } else {
+                    // Le message d'erreur est déjà envoyé par claimQuestRewards
+                    // Son d'erreur
                     try {
-                        player.playSound(player.getLocation(), sound, 1.0f, 1.0f);
+                        player.playSound(player.getLocation(), "ENTITY_VILLAGER_NO", 1.0f, 1.0f);
                     } catch (Exception e) {
                         // Ignore les erreurs de son
                     }
                 }
+            } else {
+                // Quête pas encore terminée, affiche le progrès
+                String message = plugin.getConfigManager().getMessagesConfig()
+                        .getString("quest-progress", "&7Progression: &e{progress}&7/&e{required} &7({percentage}%)")
+                        .replace("{progress}", String.valueOf(quest.getProgress()))
+                        .replace("{required}", String.valueOf(quest.getRequired()))
+                        .replace("{percentage}", String.format("%.1f", quest.getProgressPercentage()))
+                        .replace("&", "§");
 
-                // Met à jour le menu
-                openMainMenu(player);
+                String prefix = plugin.getConfigManager().getMessagesConfig().getString("prefix", "");
+                player.sendMessage(prefix + message);
             }
         }
 

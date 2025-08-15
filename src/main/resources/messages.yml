@@ -8,6 +8,10 @@ quest-assigned: "&eNouvelle quête {rarity}: &f{description}"
 quest-progress: "&7Progression: &e{progress}&7/&e{required} &7({percentage}%)"
 quest-expired: "&cQuête expirée: &f{description}"
 
+# Messages de récompenses
+rewards-claimed: "&a✓ Récompenses récupérées pour: &f{description}"
+inventory-full: "&cVous devez avoir au moins 2 slots libres dans votre inventaire pour récupérer vos récompenses!"
+
 # Messages de reset
 new-quests-available: "&2Nouvelles quêtes disponibles ! &b/quete"
 

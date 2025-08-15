@@ -1,33 +1,28 @@
 ﻿quests-pool:
   kill:
-    enderman: 5
-    witch: 3
-    blaze: 8
-    ghast: 2
-    wither_skeleton: 4
-    pillager: 10
+    blaze: 25
+    drowned: 60
+    hoglin: 35
+    witch: 15
+    magma_cube: 70
+    husk: 60
+    guardian: 20
 
   craft:
-    enchanting_table: 1
-    brewing_stand: 2
-    anvil: 1
-    iron_sword: 3
-    diamond_pickaxe: 1
+    bow: 64
+    golden_carrot: 160
+    lantern: 256
+    bookshelf: 64
+    campfire: 128
+    dispenser: 32
 
   mine:
-    diamond_ore: 8
-    gold_ore: 24
-    redstone_ore: 32
-    lapis_ore: 16
-    emerald_ore: 4
-
-  explore:
-    nether_distance: 1000
-    end_distance: 500
-    overworld_distance: 2000
+    gold_ore: 40
+    obsidian: 100
+    basalt: 500
+    clay: 300
+    copper_ore: 150
+    jungle_log: 200
 
 rewards:
-  #- "cc give %player% rare 1"
-  - "eco give %player% 500"
-  - "xp give %player% 1000"
-  - "broadcast &6%player% &ea terminé une quête rare!"
+  - "cc give p rare 1 %player%"

@@ -1,0 +1,32 @@
+﻿quests-pool:
+  kill:
+    wither: 4
+    sheep: 200
+    breeze: 90
+    ghast: 45
+    zombie: 650
+    cave_spider: 150
+    skeleton: 400
+    strider: 110
+
+  craft:
+    green_concrete_powder: 200
+    conduit: 2
+    netherite_sword: 10
+    tnt: 76
+    crafter: 160
+    target: 64
+
+
+  mine:
+    emerald_ore: 10
+    deepslate_diamond_ore: 50
+    crying_obsidian: 300
+    stone: 5000
+    redstone_ore: 500
+    lapis_lazuli: 120
+    spruce_log: 1000
+
+
+rewards:
+  - "cc give p mythique 1 %player%"

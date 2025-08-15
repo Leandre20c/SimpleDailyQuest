@@ -1,35 +1,27 @@
 ﻿quests-pool:
   kill:
+    chicken: 15
+    cow: 10
+    pig: 12
+    spider: 8
     zombie: 15
-    skeleton: 12
-    spider: 20
-    creeper: 8
-    cow: 25
-    pig: 30
-    chicken: 35
+    skeleton: 10
 
   craft:
-    wooden_pickaxe: 5
-    stone_sword: 3
-    bread: 20
-    torch: 64
-    chest: 8
-    furnace: 4
+    bread: 12
+    stick: 32
+    torch: 16
+    boat: 3
+    wooden_pickaxe: 2
+    furnace: 2
 
   mine:
-    stone: 128
-    coal_ore: 32
-    iron_ore: 16
-    cobblestone: 200
-    dirt: 150
-    oak_log: 48
-
-  fish:
-    cod: 64
-    salmon: 64
+    coal_ore: 12
+    cobblestone: 100
+    sand: 60
+    oak_log: 25
+    dirt: 80
+    gravel: 40
 
 rewards:
-  #- "cc give %player% commune 1"
-  - "eco give %player% 100"
-  - "xp give %player% 250"
-  - "broadcast &6%player% &ea terminé une quête commune!"
+  - "cc give p commune 1 %player%"

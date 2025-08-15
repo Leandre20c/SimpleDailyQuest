@@ -56,6 +56,10 @@ public class DailyQuestAdminCommand implements CommandExecutor, TabCompleter {
                 handleCompleteCommand(sender, args);
                 break;
 
+            case "generate":
+                handleGenerateCommand(sender, args);
+                break;
+
             case "save":
                 saveData(sender);
                 break;
@@ -172,19 +176,11 @@ public class DailyQuestAdminCommand implements CommandExecutor, TabCompleter {
      * Reset les quêtes d'une rareté spécifique
      */
     private void resetPlayerQuestsForRarity(CommandSender sender, Player target, Quest.QuestRarity rarity) {
-        PlayerQuestData playerData = plugin.getPlayerDataManager().getPlayerData(target);
-        playerData.clearActiveQuests(rarity);
-        playerData.setLastReset(rarity, System.currentTimeMillis());
-
-        // Notifie le joueur que ses quêtes ont été reset
-        String message = plugin.getConfigManager().getMessagesConfig()
-                .getString("new-quests-available", "&6✨ Nouvelles quêtes disponibles ! &b/quete")
-                .replace("&", "§");
-        String prefix = plugin.getConfigManager().getMessagesConfig().getString("prefix", "");
-        target.sendMessage(prefix + message);
+        // Utilise la méthode du QuestManager
+        plugin.getQuestManager().resetQuestsForRarity(target, rarity);
 
         if (sender != null) {
-            sender.sendMessage("§a[SimpleDailyQuests] Quêtes " + rarity.name() + " de " + target.getName() + " réinitialisées.");
+            sender.sendMessage("§a[SimpleDailyQuests] Quêtes " + rarity.name() + " de " + target.getName() + " réinitialisées et nouvelle quête générée.");
         }
         target.sendMessage("§e[SimpleDailyQuests] Vos quêtes " + rarity.name() + " ont été réinitialisées.");
     }
@@ -254,11 +250,64 @@ public class DailyQuestAdminCommand implements CommandExecutor, TabCompleter {
             return;
         }
 
-        // Force la completion
+        // Force la completion avec la nouvelle méthode
         quest.setProgress(quest.getRequired());
-        plugin.getQuestManager().completeQuest(target, quest);
+        plugin.getQuestManager().forceCompleteQuest(target, quest);
 
         sender.sendMessage("§a[SimpleDailyQuests] Quête " + questId + " terminée pour " + target.getName() + ".");
+    }
+
+    /**
+     * Gère la commande de génération de quêtes
+     */
+    private void handleGenerateCommand(CommandSender sender, String[] args) {
+        if (args.length < 2) {
+            sender.sendMessage("§cUsage: /dqa generate <joueur|all> [rareté]");
+            return;
+        }
+
+        if (args[1].equalsIgnoreCase("all")) {
+            // Génère pour tous les joueurs connectés
+            int count = 0;
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                if (args.length >= 3) {
+                    try {
+                        Quest.QuestRarity rarity = Quest.QuestRarity.valueOf(args[2].toUpperCase());
+                        plugin.getQuestManager().resetQuestsForRarity(player, rarity);
+                    } catch (IllegalArgumentException e) {
+                        sender.sendMessage("§cRareté invalide. Raretés disponibles: COMMUNE, RARE, MYTHIQUE, LEGENDAIRE");
+                        return;
+                    }
+                } else {
+                    plugin.getQuestManager().forceGenerateInitialQuests(player);
+                }
+                count++;
+            }
+            sender.sendMessage("§a[SimpleDailyQuests] Quêtes générées pour " + count + " joueur(s).");
+            return;
+        }
+
+        Player target = Bukkit.getPlayer(args[1]);
+        if (target == null) {
+            sender.sendMessage("§cJoueur introuvable: " + args[1]);
+            return;
+        }
+
+        if (args.length >= 3) {
+            // Génère une quête d'une rareté spécifique
+            try {
+                Quest.QuestRarity rarity = Quest.QuestRarity.valueOf(args[2].toUpperCase());
+                plugin.getQuestManager().resetQuestsForRarity(target, rarity);
+
+                sender.sendMessage("§a[SimpleDailyQuests] Quête " + rarity.name() + " générée pour " + target.getName() + " avec timer redémarré.");
+            } catch (IllegalArgumentException e) {
+                sender.sendMessage("§cRareté invalide. Raretés disponibles: COMMUNE, RARE, MYTHIQUE, LEGENDAIRE");
+            }
+        } else {
+            // Génère toutes les quêtes
+            plugin.getQuestManager().forceGenerateInitialQuests(target);
+            sender.sendMessage("§a[SimpleDailyQuests] Toutes les quêtes générées pour " + target.getName() + ".");
+        }
     }
 
     /**
@@ -351,6 +400,7 @@ public class DailyQuestAdminCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage("§6=== Aide Administration SimpleDailyQuests ===");
         sender.sendMessage("§e/dqa reload §7- Recharge les configurations");
         sender.sendMessage("§e/dqa reset <joueur|all> [rareté] §7- Reset les quêtes");
+        sender.sendMessage("§e/dqa generate <joueur|all> [rareté] §7- Génère de nouvelles quêtes");
         sender.sendMessage("§e/dqa info <joueur> §7- Informations sur un joueur");
         sender.sendMessage("§e/dqa complete <joueur> <quest-id> §7- Force la completion");
         sender.sendMessage("§e/dqa save §7- Sauvegarde les données");
@@ -369,8 +419,8 @@ public class DailyQuestAdminCommand implements CommandExecutor, TabCompleter {
         List<String> completions = new ArrayList<>();
 
         if (args.length == 1) {
-            // Sous-commandes principales (supprimé "give")
-            List<String> subCommands = Arrays.asList("reload", "reset", "info", "complete",
+            // Sous-commandes principales
+            List<String> subCommands = Arrays.asList("reload", "reset", "generate", "info", "complete",
                     "save", "debug", "stats", "cleanup", "help");
             String input = args[0].toLowerCase();
 
@@ -383,7 +433,7 @@ public class DailyQuestAdminCommand implements CommandExecutor, TabCompleter {
             String subCommand = args[0].toLowerCase();
 
             // Noms des joueurs pour la plupart des commandes
-            if (Arrays.asList("reset", "info", "complete").contains(subCommand)) {
+            if (Arrays.asList("reset", "generate", "info", "complete").contains(subCommand)) {
                 String input = args[1].toLowerCase();
                 completions.add("all");
                 completions.addAll(Bukkit.getOnlinePlayers().stream()
@@ -398,8 +448,8 @@ public class DailyQuestAdminCommand implements CommandExecutor, TabCompleter {
         } else if (args.length == 3) {
             String subCommand = args[0].toLowerCase();
 
-            if (subCommand.equals("reset")) {
-                // Raretés pour la commande reset
+            if (subCommand.equals("reset") || subCommand.equals("generate")) {
+                // Raretés pour les commandes reset et generate
                 String input = args[2].toLowerCase();
                 for (Quest.QuestRarity rarity : Quest.QuestRarity.values()) {
                     String rarityName = rarity.name().toLowerCase();
